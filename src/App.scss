@@ -1,0 +1,13 @@
+.App {
+  padding: 1.5rem;
+  text-align: center;
+
+  .btn_prepend {
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+  }
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
