@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { connect } from 'react-redux';
-import { updateTodos } from '../redux/reducers/rootReducer'
+import { updateLists } from '../redux/reducers/rootReducer'
 
 import {
   Row,
@@ -19,32 +19,85 @@ import { faCheck, faEdit, faSpinner, faTrashAlt } from '@fortawesome/free-solid-
 
 const Todos = props => {
 
-  const { todos, updateTodos } = props
+  const { lists, updateLists, selectedListId } = props
   const initialTodo = {
     title: '',
     completed: false,
     date: ''
   }
 
+  const [todos, setTodos] = useState([])
+
+  useEffect(() => {
+    if (selectedListId) {
+      setTodos(lists.filter(list => list._id === selectedListId)[0].todos)
+    }
+  }, [selectedListId, lists])
+
   const [todo, setTodo] = useState(initialTodo)
-  const [updateIndex, setUpdateIndex] = useState(null)
-  const [deleteIndex, setDeleteIndex] = useState(null)
+  const [updateId, setUpdateId] = useState(null)
+  const [deleteId, setDeleteId] = useState(null)
   const [modal, setModal] = useState(false);
 
   const toggle = () => setModal(!modal);
   const modifyTodos = () => {
     if (todo.title && todo.date) {
-      updateIndex === null ?
-        todos.filter(obj => obj.title === todo.title && obj.date === todo.date).length ?
-          console.log('Already exists!!') :
-          todos.push(todo) :
-        todos[updateIndex] = { ...todo }
+      updateId === null ?
+        fetch(process.env.REACT_APP_API_URL + '/todo/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ ...todo, list_id: selectedListId })
+        }).then(res => res.json())
+          .then(lists => updateLists(lists))
+        :
 
-      updateTodos([...todos])
-      setUpdateIndex(null)
+        fetch(process.env.REACT_APP_API_URL + '/todo/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            _id: updateId,
+            ...todo
+          })
+        }).then(res => res.json())
+          .then(lists => updateLists(lists))
+          .finally(() => setUpdateId(null))
+
       setTodo(initialTodo)
     }
     else console.log('EMPTY!!');
+  }
+
+  const handleCompleted = item =>
+    fetch(process.env.REACT_APP_API_URL + '/todo/update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ...item,
+        completed: true
+      })
+    }).then(res => res.json())
+      .then(lists => updateLists(lists))
+      .finally(() => setUpdateId(null))
+
+  const handleDelete = () => {
+    toggle()
+    fetch(process.env.REACT_APP_API_URL + '/todo/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        _id: deleteId,
+      })
+    }).then(res => res.json())
+      .then(lists => updateLists(lists))
+      .finally(() => setDeleteId(null))
   }
 
   return (
@@ -63,13 +116,17 @@ const Todos = props => {
             type="date" />
         </Col>
         <Col md='12' lg='4' xl='2'>
-          <Button className='w-100' color='success' onClick={modifyTodos}>
-            {updateIndex === null ? 'Add' : 'Update'} Todo
+          <Button
+            disabled={!(todo.title && todo.date && selectedListId)}
+            className='w-100'
+            color='success'
+            onClick={modifyTodos}>
+            {updateId === null ? 'Add' : 'Update'} Todo
           </Button>
         </Col>
       </Row>
       <br />
-      {todos.length ?
+      {todos?.length ?
         <ListGroup>
           <ListGroupItem>
             <Row>
@@ -85,7 +142,12 @@ const Todos = props => {
               <Row>
                 <Col xs='1'>
                   <FontAwesomeIcon
-                    className={item.completed ? 'text-success' : 'text-primary'}
+                    onClick={e =>
+                      item.completed ?
+                        e.preventDefault() :
+                        handleCompleted(item)
+                    }
+                    className={`cursor-pointer ${item.completed ? 'text-success' : 'text-primary'}`}
                     icon={item.completed ? faCheck : faSpinner} />
                 </Col>
                 <Col xs='4' className='text-start'>{item.title}</Col>
@@ -93,7 +155,7 @@ const Todos = props => {
                 <Col xs='2'>
                   <FontAwesomeIcon
                     onClick={() => {
-                      setUpdateIndex(index)
+                      setUpdateId(item._id)
                       setTodo(item)
                     }}
                     className='text-primary cursor-pointer'
@@ -103,7 +165,7 @@ const Todos = props => {
                   <FontAwesomeIcon
                     onClick={() => {
                       toggle()
-                      setDeleteIndex(index)
+                      setDeleteId(item._id)
                     }}
                     className='text-danger cursor-pointer'
                     icon={faTrashAlt} />
@@ -120,14 +182,7 @@ const Todos = props => {
         </ModalBody>
         <ModalFooter>
           <Button color="primary" onClick={toggle}>No, cancel</Button>{' '}
-          <Button
-            color="danger"
-            onClick={() => {
-              toggle()
-              todos.splice(deleteIndex, 1);
-              updateTodos([...todos])
-              setDeleteIndex(null)
-            }}>
+          <Button color="danger" onClick={handleDelete}>
             Yes, delete
           </Button>
         </ModalFooter>
@@ -136,7 +191,7 @@ const Todos = props => {
   )
 }
 
-const mapStateToProps = state => ({ todos: state.todos });
-const mapDispatchToProps = { updateTodos };
+const mapStateToProps = state => ({ lists: state.lists, selectedListId: state.selectedListId });
+const mapDispatchToProps = { updateLists };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Todos);

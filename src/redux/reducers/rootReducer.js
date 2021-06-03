@@ -2,13 +2,12 @@
 export const ACTION_TYPES = {
   UPDATE_LISTS: "UPDATE_LISTS",
   UPDATE_TODOS: "UPDATE_TODOS",
-  SET_SELECTED_LIST: "SET_SELECTED_LIST"
+  SET_SELECTED_LIST_ID: "SET_SELECTED_LIST_ID"
 };
 
 const initialState = {
   lists: [],
-  todos: [],
-  selectedList: null
+  selectedListId: null
 }
 
 const rootReducer = (state = initialState, action) => {
@@ -17,8 +16,8 @@ const rootReducer = (state = initialState, action) => {
       return { ...state, lists: action.lists };
     case ACTION_TYPES.UPDATE_TODOS:
       return { ...state, todos: action.todos };
-    case ACTION_TYPES.SET_SELECTED_LIST:
-      return { ...state, selectedList: action.listIndex };
+    case ACTION_TYPES.SET_SELECTED_LIST_ID:
+      return { ...state, selectedListId: action._id };
     default:
       return { ...state };
   }
@@ -36,9 +35,9 @@ export const updateTodos = todos => ({
   todos,
 });
 
-export const setSelectedList = listIndex => ({
-  type: ACTION_TYPES.SET_SELECTED_LIST,
-  listIndex,
+export const setSelectedListId = _id => ({
+  type: ACTION_TYPES.SET_SELECTED_LIST_ID,
+  _id,
 });
 
 export default rootReducer;

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { connect } from 'react-redux';
-import { updateLists, setSelectedList } from '../redux/reducers/rootReducer'
+import { updateLists, setSelectedListId } from '../redux/reducers/rootReducer'
 
 import {
   Row,
@@ -21,36 +21,68 @@ import { faEdit, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 
 const Lists = props => {
 
-  const { lists, updateLists, selectedList, setSelectedList } = props
+  const { lists, updateLists, selectedListId, setSelectedListId } = props
 
   const [name, setName] = useState('')
-  const [updateIndex, setUpdateIndex] = useState(null)
-  const [deleteIndex, setDeleteIndex] = useState(null)
+  const [updateId, setUpdateId] = useState(null)
+  const [deleteId, setDeleteId] = useState(null)
   const [modal, setModal] = useState(false);
+
+  useEffect(() => {
+    fetch(process.env.REACT_APP_API_URL + '/list/get')
+      .then(res => res.json())
+      .then(lists => updateLists(lists))
+  }, [])
 
   const toggle = () => setModal(!modal);
 
   const modifyLists = () => {
     if (name) {
-      updateIndex === null ?
+      updateId === null ?
         lists.includes(name) ?
-          console.log('Already exists!!') :
-          lists.push(name) :
-        lists[updateIndex] = name
-
-
-      fetch(process.env.REACT_APP_API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ name })
-      })
-        .then(res => res.json())
-        .then(data => console.log(data))
+          console.log('Already exists!!')
+          :
+          fetch(process.env.REACT_APP_API_URL + '/list/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name })
+          }).then(res => res.json())
+            .then(lists => updateLists(lists))
+        :
+        fetch(process.env.REACT_APP_API_URL + '/list/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            _id: updateId,
+            name
+          })
+        }).then(res => res.json())
+          .then(lists => updateLists(lists))
+          .finally(() => setUpdateId(null))
 
       updateLists([...lists])
-      setUpdateIndex(null)
       setName('')
     }
     else console.log('EMPTY!!');
+  }
+
+  const handleDelete = () => {
+    toggle()
+    fetch(process.env.REACT_APP_API_URL + '/list/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        _id: deleteId,
+      })
+    }).then(res => res.json())
+      .then(lists => updateLists(lists))
+      .finally(() => setDeleteId(null))
   }
 
   return (
@@ -62,10 +94,11 @@ const Lists = props => {
           placeholder='Enter name of the list' />
         <InputGroupAddon addonType='prepend'>
           <Button
+            disabled={!name}
             color='success'
             className='btn_prepend'
             onClick={modifyLists}>
-            {updateIndex === null ? 'Add' : 'Update'}
+            {updateId === null ? 'Add' : 'Update'}
           </Button>
         </InputGroupAddon>
       </InputGroup>
@@ -83,30 +116,32 @@ const Lists = props => {
             </Col>
             </Row>
           </ListGroupItem>
-          {lists.map((item, index) =>
+          {lists.map((list, index) =>
             <ListGroupItem
-              className={selectedList === index ? 'bg-primary text-white' : ''}
+              className={selectedListId === list._id ? 'bg-primary text-white' : ''}
               key={`list_${index}`}
               onClick={() => {
-                setSelectedList(index)
+                setSelectedListId(list._id)
               }}
             >
               <Row>
-                <Col xs='8' className='text-start'>{item}</Col>
+                <Col xs='8' className='text-start'>{list.name}</Col>
                 <Col xs='2'>
                   <FontAwesomeIcon
-                    onClick={() => {
-                      setUpdateIndex(index)
-                      setName(item)
+                    onClick={e => {
+                      e.stopPropagation()
+                      setUpdateId(list._id)
+                      setName(list.name)
                     }}
-                    className={`cursor-pointer text-${selectedList === index ? 'white' : 'primary'}`}
+                    className={`cursor-pointer text-${selectedListId === list._id ? 'white' : 'primary'}`}
                     icon={faEdit} />
                 </Col>
                 <Col xs='2'>
                   <FontAwesomeIcon
-                    onClick={() => {
+                    onClick={e => {
+                      e.stopPropagation()
                       toggle()
-                      setDeleteIndex(index)
+                      setDeleteId(list._id)
                     }}
                     className='text-danger cursor-pointer'
                     icon={faTrashAlt} />
@@ -123,13 +158,7 @@ const Lists = props => {
         </ModalBody>
         <ModalFooter>
           <Button color="primary" onClick={toggle}>No, cancel</Button>{' '}
-          <Button color="danger"
-            onClick={() => {
-              toggle()
-              lists.splice(deleteIndex, 1);
-              updateLists([...lists])
-              setDeleteIndex(null)
-            }}>
+          <Button color="danger" onClick={handleDelete}>
             Yes, delete
           </Button>
         </ModalFooter>
@@ -138,7 +167,7 @@ const Lists = props => {
   )
 }
 
-const mapStateToProps = state => ({ lists: state.lists, selectedList: state.selectedList });
-const mapDispatchToProps = { updateLists, setSelectedList };
+const mapStateToProps = state => ({ lists: state.lists, selectedListId: state.selectedListId });
+const mapDispatchToProps = { updateLists, setSelectedListId };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Lists);
