@@ -10,7 +10,7 @@ import store from './redux/store'
 
 ReactDOM.render(
   <React.Fragment>
-    <Provider store={store()}>
+    <Provider store={store}>
       <App />
     </Provider>
   </React.Fragment>,

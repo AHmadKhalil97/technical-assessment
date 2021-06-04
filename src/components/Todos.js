@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { connect } from 'react-redux';
-import { updateLists } from '../redux/reducers/rootReducer'
+import { addTodo, updateTodo, deleteTodo } from '../redux/actions/index'
 
 import {
   Row,
@@ -12,14 +12,22 @@ import {
   Modal,
   ModalBody,
   ModalFooter,
-  ModalHeader
+  ModalHeader,
+  Spinner
 } from 'reactstrap'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faEdit, faSpinner, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 
 const Todos = props => {
 
-  const { lists, updateLists, selectedListId } = props
+  const {
+    lists,
+    addTodo,
+    updateTodo,
+    deleteTodo,
+    selectedListId,
+    loading
+  } = props
   const initialTodo = {
     title: '',
     completed: false,
@@ -29,9 +37,8 @@ const Todos = props => {
   const [todos, setTodos] = useState([])
 
   useEffect(() => {
-    if (selectedListId) {
+    if (selectedListId)
       setTodos(lists.filter(list => list._id === selectedListId)[0].todos)
-    }
   }, [selectedListId, lists])
 
   const [todo, setTodo] = useState(initialTodo)
@@ -43,61 +50,24 @@ const Todos = props => {
   const modifyTodos = () => {
     if (todo.title && todo.date) {
       updateId === null ?
-        fetch(process.env.REACT_APP_API_URL + '/todo/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ ...todo, list_id: selectedListId })
-        }).then(res => res.json())
-          .then(lists => updateLists(lists))
-        :
+        addTodo({ ...todo, list_id: selectedListId }) :
+        updateTodo({ _id: updateId, ...todo })
 
-        fetch(process.env.REACT_APP_API_URL + '/todo/update', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            _id: updateId,
-            ...todo
-          })
-        }).then(res => res.json())
-          .then(lists => updateLists(lists))
-          .finally(() => setUpdateId(null))
-
+      setUpdateId(null)
       setTodo(initialTodo)
     }
     else console.log('EMPTY!!');
   }
 
-  const handleCompleted = item =>
-    fetch(process.env.REACT_APP_API_URL + '/todo/update', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        ...item,
-        completed: true
-      })
-    }).then(res => res.json())
-      .then(lists => updateLists(lists))
-      .finally(() => setUpdateId(null))
+  const handleCompleted = item => {
+    updateTodo({ ...item, completed: true })
+    setUpdateId(null)
+  }
 
   const handleDelete = () => {
     toggle()
-    fetch(process.env.REACT_APP_API_URL + '/todo/delete', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        _id: deleteId,
-      })
-    }).then(res => res.json())
-      .then(lists => updateLists(lists))
-      .finally(() => setDeleteId(null))
+    deleteTodo({ _id: deleteId })
+    setDeleteId(null)
   }
 
   return (
@@ -121,7 +91,8 @@ const Todos = props => {
             className='w-100'
             color='success'
             onClick={modifyTodos}>
-            {updateId === null ? 'Add' : 'Update'} Todo
+            {loading ? <Spinner size='sm' color="light" /> :
+              updateId === null ? 'Add Todo' : 'Update Todo'}
           </Button>
         </Col>
       </Row>
@@ -191,7 +162,15 @@ const Todos = props => {
   )
 }
 
-const mapStateToProps = state => ({ lists: state.lists, selectedListId: state.selectedListId });
-const mapDispatchToProps = { updateLists };
+const mapStateToProps = state => ({
+  lists: state.lists,
+  selectedListId: state.selectedListId,
+  loading: state.loading
+});
+const mapDispatchToProps = {
+  addTodo,
+  updateTodo,
+  deleteTodo
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(Todos);

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { connect } from 'react-redux';
-import { updateLists, setSelectedListId } from '../redux/reducers/rootReducer'
+import { getLists, addList, updateList, deleteList, setSelectedListId } from '../redux/actions/index'
 
 import {
   Row,
@@ -14,25 +14,31 @@ import {
   Modal,
   ModalBody,
   ModalFooter,
-  ModalHeader
+  ModalHeader,
+  Spinner
 } from 'reactstrap'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 
 const Lists = props => {
 
-  const { lists, updateLists, selectedListId, setSelectedListId } = props
+  const {
+    lists,
+    getLists,
+    addList,
+    updateList,
+    deleteList,
+    selectedListId,
+    setSelectedListId,
+    loading
+  } = props
 
   const [name, setName] = useState('')
   const [updateId, setUpdateId] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
   const [modal, setModal] = useState(false);
 
-  useEffect(() => {
-    fetch(process.env.REACT_APP_API_URL + '/list/get')
-      .then(res => res.json())
-      .then(lists => updateLists(lists))
-  }, [])
+  useEffect(getLists, [getLists]) //https://github.com/facebook/react/issues/15865#issuecomment-515906259
 
   const toggle = () => setModal(!modal);
 
@@ -42,29 +48,11 @@ const Lists = props => {
         lists.includes(name) ?
           console.log('Already exists!!')
           :
-          fetch(process.env.REACT_APP_API_URL + '/list/create', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ name })
-          }).then(res => res.json())
-            .then(lists => updateLists(lists))
+          addList({ name })
         :
-        fetch(process.env.REACT_APP_API_URL + '/list/update', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            _id: updateId,
-            name
-          })
-        }).then(res => res.json())
-          .then(lists => updateLists(lists))
-          .finally(() => setUpdateId(null))
+        updateList({ _id: updateId, name })
 
-      updateLists([...lists])
+      setUpdateId(null)
       setName('')
     }
     else console.log('EMPTY!!');
@@ -72,17 +60,8 @@ const Lists = props => {
 
   const handleDelete = () => {
     toggle()
-    fetch(process.env.REACT_APP_API_URL + '/list/delete', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        _id: deleteId,
-      })
-    }).then(res => res.json())
-      .then(lists => updateLists(lists))
-      .finally(() => setDeleteId(null))
+    deleteList({ _id: deleteId })
+    setDeleteId(null)
   }
 
   return (
@@ -98,7 +77,8 @@ const Lists = props => {
             color='success'
             className='btn_prepend'
             onClick={modifyLists}>
-            {updateId === null ? 'Add' : 'Update'}
+            {loading ? <Spinner size='sm' color="light" /> :
+              updateId === null ? 'Add' : 'Update'}
           </Button>
         </InputGroupAddon>
       </InputGroup>
@@ -167,7 +147,17 @@ const Lists = props => {
   )
 }
 
-const mapStateToProps = state => ({ lists: state.lists, selectedListId: state.selectedListId });
-const mapDispatchToProps = { updateLists, setSelectedListId };
+const mapStateToProps = state => ({
+  lists: state.lists,
+  selectedListId: state.selectedListId,
+  loading: state.loading
+});
+const mapDispatchToProps = {
+  getLists,
+  addList,
+  updateList,
+  deleteList,
+  setSelectedListId
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(Lists);
