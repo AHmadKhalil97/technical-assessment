@@ -1,7 +1,7 @@
 const express = require('express')
 
 const app = express()
-const port = 4201
+const PORT = 5001
 
 require('./DB/Connection')()
 const cors = require('cors')
@@ -16,6 +16,11 @@ app.use(cors({ origin: 'http://localhost:3000' }));
 ////////////////////////////////////
 //        LIST REQUESTS
 ///////////////////////////////////
+
+app.get('/', async (req, res) => {
+  res.status(200)
+  res.send({ hello: 'world' })
+})
 
 app.get('/list/get', async (req, res) => {
   List.find({}).populate('todos').then(lists => {
@@ -119,6 +124,6 @@ app.post('/todo/delete', async (req, res) => {
   })
 })
 
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`)
+app.listen(process.env.PORT || PORT, () => {
+  console.log(`Example app listening at http://localhost:${PORT}`)
 })
