@@ -37,8 +37,11 @@ const Todos = props => {
   const [todos, setTodos] = useState([])
 
   useEffect(() => {
-    if (selectedListId)
-      setTodos(lists.filter(list => list._id === selectedListId)[0].todos)
+    if (selectedListId) {
+      const _lists = lists.filter(list => list._id === selectedListId)
+      if (_lists.length)
+        setTodos(_lists[0].todos)
+    }
   }, [selectedListId, lists])
 
   const [todo, setTodo] = useState(initialTodo)
