@@ -133,7 +133,6 @@ function* actionWatcher() {
   yield takeLatest(ADD_LIST, addList)
   yield takeLatest(UPDATE_LIST, updateList)
   yield takeLatest(DELETE_LIST, deleteList)
-  yield takeLatest(GET_TODOS, fetchTodos)
   yield takeLatest(ADD_TODO, addTodo)
   yield takeLatest(UPDATE_TODO, updateTodo)
   yield takeLatest(DELETE_TODO, deleteTodo)
